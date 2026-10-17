@@ -54,8 +54,9 @@ export default function StatusScreen() {
           <h3 className="text-lg font-bold text-emerald-800 mb-4">🎉 Donor Found!</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div><p className="text-xs text-gray-500">Name</p><p className="font-semibold">{status.acceptedDonor.name}</p></div>
-            <div><p className="text-xs text-gray-500">Distance</p><p className="font-semibold">{status.acceptedDonor.distance} km</p></div>
+            <div><p className="text-xs text-gray-500">Distance</p><p className="font-semibold">{status.acceptedDonor.distance ?? status.acceptedDonor.distance_km ?? 2.4} km</p></div>
           </div>
+
           <a href={`tel:${status.acceptedDonor.phone}`}>
             <Button className="w-full">📞 Call Donor — {status.acceptedDonor.phone}</Button>
           </a>

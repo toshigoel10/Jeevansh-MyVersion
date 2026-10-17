@@ -8,18 +8,48 @@ import toast from 'react-hot-toast';
 
 export default function DonorRegister() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', phone: '', bloodType: '', location: '' });
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    bloodType: '',
+    location: 'Delhi NCR',
+    latitude: 28.6139,
+    longitude: 77.2090,
+  });
   const [loading, setLoading] = useState(false);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) return toast.error('Geolocation not supported');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          location: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
+        }));
+        toast.success('GPS coordinates captured for nearby alerts!');
+      },
+      () => toast.error('Could not get GPS location')
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.phone || !form.bloodType) return toast.error('Please fill all required fields');
     setLoading(true);
-    await registerDonor(form);
-    setLoading(false);
-    toast.success('Registered! You will receive a WhatsApp confirmation.');
-    navigate('/donor/login');
+    try {
+      await registerDonor(form);
+      setLoading(false);
+      toast.success('Registered! Welcome to Jeevansh.');
+      navigate('/donor/login');
+    } catch {
+      setLoading(false);
+      toast.error('Registration failed. Please check your phone number.');
+    }
+
   };
+
 
   return (
     <div className="max-w-lg mx-auto py-12 px-4">
@@ -41,8 +71,15 @@ export default function DonorRegister() {
             ))}
           </div>
         </div>
-        <Input label="Location" placeholder="City or area" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+        <div className="mb-6">
+          <Input label="Location" placeholder="City or area" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          <button type="button" onClick={detectLocation} className="text-blood-600 text-sm font-medium hover:underline flex items-center gap-1 mt-1">
+            📍 Use my GPS location
+          </button>
+        </div>
+
         <Button type="submit" size="lg" disabled={loading}>{loading ? 'Registering...' : 'Register as Donor'}</Button>
+
       </form>
       <p className="text-center mt-6 text-sm text-gray-500">
         Already registered? <Link to="/donor/login" className="text-blood-600 font-semibold hover:underline">Login here</Link>

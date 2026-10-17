@@ -4,29 +4,30 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { RequestProvider } from './context/RequestContext';
 
 import RequesterLayout from './components/layout/RequesterLayout';
-import DonorLayout from './components/layout/DonorLayout';
-import BankLayout from './components/layout/BankLayout';
 
+// Public & Flow Pages
 import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import RequestForm from './pages/RequestForm';
-import BanksScreen from './pages/BanksScreen'; // <-- NEW IMPORT
+import BanksScreen from './pages/BanksScreen';
 import AlertingScreen from './pages/AlertingScreen';
 import StatusScreen from './pages/StatusScreen';
-import DonorRegister from './pages/DonorRegister';
-import DonorLogin from './pages/DonorLogin';
-import DonorDashboard from './pages/DonorDashboard';
-import BankLogin from './pages/BankLogin';
-import BankDashboard from './pages/BankDashboard';
 import BankScan from './pages/BankScan';
 
-function DonorRoute({ children }) {
-  const { donor } = useAuth();
-  return donor ? children : <Navigate to="/donor/login" />;
-}
+// Role-Based Dashboards
+import SeekerDashboard from './pages/dashboards/SeekerDashboard';
+import DonorDashboard from './pages/DonorDashboard';
+import HospitalDashboard from './pages/dashboards/HospitalDashboard';
+import BankDashboard from './pages/BankDashboard';
 
-function BankRoute({ children }) {
-  const { bank } = useAuth();
-  return bank ? children : <Navigate to="/bank/login" />;
+function ProtectedRoute({ role, children }) {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to={`/login?role=${role || 'seeker'}`} replace />;
+  }
+  return children;
 }
 
 export default function App() {
@@ -34,31 +35,81 @@ export default function App() {
     <AuthProvider>
       <RequestProvider>
         <BrowserRouter>
-          <Toaster position="top-center" toastOptions={{
-            style: { background: '#333', color: '#fff', borderRadius: '12px' }
-          }} />
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: '#1e293b',
+                color: '#fff',
+                borderRadius: '14px',
+                fontSize: '13px',
+                fontWeight: '500',
+              },
+            }}
+          />
           <Routes>
-            {/* Public + Requester Routes */}
             <Route element={<RequesterLayout />}>
+              {/* Core Landing & Authentication */}
               <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              {/* Backward compatibility routes */}
+              <Route path="/donor/login" element={<Navigate to="/login?role=donor" replace />} />
+              <Route path="/donor/register" element={<Navigate to="/register?role=donor" replace />} />
+              <Route path="/bank/login" element={<Navigate to="/login?role=bank" replace />} />
+
+              {/* Blood Requisition Flow */}
               <Route path="/request" element={<RequestForm />} />
-              <Route path="/request/banks" element={<BanksScreen />} /> {/* <-- NEW ROUTE */}
+              <Route path="/request/banks" element={<BanksScreen />} />
               <Route path="/request/alerting" element={<AlertingScreen />} />
               <Route path="/request/status/:id" element={<StatusScreen />} />
-              <Route path="/donor/register" element={<DonorRegister />} />
-              <Route path="/donor/login" element={<DonorLogin />} />
-              <Route path="/bank/login" element={<BankLogin />} />
-            </Route>
 
-            {/* Protected Donor Routes */}
-            <Route element={<DonorRoute><DonorLayout /></DonorRoute>}>
-              <Route path="/donor/dashboard" element={<DonorDashboard />} />
-            </Route>
+              {/* Role-Based Dashboards */}
+              <Route
+                path="/seeker/dashboard"
+                element={
+                  <ProtectedRoute role="seeker">
+                    <SeekerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/donor/dashboard"
+                element={
+                  <ProtectedRoute role="donor">
+                    <DonorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hospital/dashboard"
+                element={
+                  <ProtectedRoute role="hospital">
+                    <HospitalDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bank/dashboard"
+                element={
+                  <ProtectedRoute role="bank">
+                    <BankDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bank/scan"
+                element={
+                  <ProtectedRoute role="bank">
+                    <BankScan />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Protected Bank Routes */}
-            <Route element={<BankRoute><BankLayout /></BankRoute>}>
-              <Route path="/bank/dashboard" element={<BankDashboard />} />
-              <Route path="/bank/scan" element={<BankScan />} />
+              {/* Catch-all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
         </BrowserRouter>

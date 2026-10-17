@@ -1,26 +1,45 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.config import MONGODB_URI, DATABASE_NAME
+from app.config import MONGODB_URI, DATABASE_NAME, FALLBACK_TO_MEMORY
+from app.in_memory_db import InMemoryDatabase
 
 client: AsyncIOMotorClient = None
 db = None
 
 async def connect_db():
     global client, db
-    client = AsyncIOMotorClient(MONGODB_URI)
-    db = client[DATABASE_NAME]
+    try:
+        client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=2000)
+        # Test connection
+        await client.admin.command("ping")
+        db = client[DATABASE_NAME]
 
-    # Create 2dsphere index on donor locations (CRITICAL for geo-search)
-    await db.donors.create_index([("location", "2dsphere")])
-    await db.donors.create_index("phone", unique=True)
-    await db.requests.create_index("created_at")
+        # Create indexes
+        await db.donors.create_index([("location", "2dsphere")])
+        await db.donors.create_index("phone", unique=True)
+        await db.requests.create_index("created_at")
 
-    print(f"✅ Connected to MongoDB: {DATABASE_NAME}")
+        print(f"[OK] Connected to MongoDB: {DATABASE_NAME}")
+    except Exception as exc:
+        if FALLBACK_TO_MEMORY:
+            print(f"[INFO] MongoDB not reachable. Switching to InMemoryDatabase fallback.")
+            db = InMemoryDatabase()
+        else:
+            raise exc
 
 async def close_db():
     global client
     if client:
         client.close()
-        print("❌ MongoDB connection closed")
+        print("[INFO] MongoDB connection closed")
+
 
 def get_db():
+    global db
+    if db is None:
+        if FALLBACK_TO_MEMORY:
+            print("[INFO] Initializing lazy InMemoryDatabase instance.")
+            db = InMemoryDatabase()
+        else:
+            raise RuntimeError("Database not initialized. Please call connect_db() first.")
     return db
+

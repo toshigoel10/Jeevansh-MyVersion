@@ -28,10 +28,11 @@ export default function BankScan() {
         },
         () => {}
       );
-    } catch (err) {
+    } catch {
       toast.error('Camera access denied');
       setScanning(false);
     }
+
   };
 
   const simulateScan = async () => {

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import connect_db, close_db
-from app.routes import donors, requests
+from app.routes import donors, requests, banks
 
 
 @asynccontextmanager
@@ -30,6 +30,8 @@ app.add_middleware(
 
 app.include_router(donors.router)
 app.include_router(requests.router)
+app.include_router(banks.router)
+
 
 
 @app.get("/")

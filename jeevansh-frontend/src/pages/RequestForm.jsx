@@ -10,28 +10,52 @@ import toast from 'react-hot-toast';
 export default function RequestForm() {
   const navigate = useNavigate();
   const { setActiveRequest } = useRequest();
-  const [form, setForm] = useState({ bloodType: '', location: '', patientAge: '', patientGender: '', units: 1, hospital: '' });
+  const [form, setForm] = useState({
+    bloodType: '',
+    location: '',
+    latitude: 28.6139,
+    longitude: 77.2090,
+    patientAge: '',
+    patientGender: '',
+    units: 1,
+    hospital: '',
+  });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.bloodType || !form.location) return toast.error('Blood group and location are required');
     setLoading(true);
-    const banks = await checkBanks(form.bloodType);
-    const banksWithStock = banks.filter((b) => b.hasStock);
-    setActiveRequest({ ...form, banks: banksWithStock });
-    setLoading(false);
-    if (banksWithStock.length > 0) navigate('/request/banks');
-    else navigate('/request/alerting');
+    try {
+      const banks = await checkBanks(form.bloodType, form.latitude, form.longitude);
+      const banksWithStock = banks.filter((b) => b.hasStock);
+      setActiveRequest({ ...form, banks: banksWithStock });
+      setLoading(false);
+      if (banksWithStock.length > 0) navigate('/request/banks');
+      else navigate('/request/alerting');
+    } catch {
+      setLoading(false);
+      toast.error('Failed to search blood banks. Please try again.');
+    }
+
   };
 
   const useMyLocation = () => {
     if (!navigator.geolocation) return toast.error('Geolocation not supported');
     navigator.geolocation.getCurrentPosition(
-      (pos) => setForm({ ...form, location: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` }),
+      (pos) => {
+        setForm((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          location: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
+        }));
+        toast.success('GPS Location detected!');
+      },
       () => toast.error('Could not get location')
     );
   };
+
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
